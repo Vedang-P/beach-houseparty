@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unavailable Dates – Group Schedule</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;600;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0a0f;
+    color: #e8e8f0;
+    font-family: 'Sora', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99,60,200,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 80% 90%, rgba(20,180,150,0.10) 0%, transparent 70%);
+  }
+
+  h1 {
+    font-family: 'Sora', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.2rem, 5vw, 1.8rem);
+    letter-spacing: -0.02em;
+    text-align: center;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, #a78bfa, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 28px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Date grid ── */
+  .grid-section {
+    max-width: 680px;
+    margin: 0 auto 36px;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    color: #6b7280;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+
+  .date-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 8px;
+  }
+
+  .date-cell {
+    border-radius: 10px;
+    padding: 10px 4px;
+    text-align: center;
+    position: relative;
+    transition: transform 0.15s;
+    cursor: default;
+  }
+  .date-cell:hover { transform: translateY(-2px); }
+
+  .date-num {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .dot-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px;
+    min-height: 8px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  /* Heat levels */
+  .heat-0 { background: #1a1a2e; border: 1px solid #2a2a40; }
+  .heat-0 .date-num { color: #3a3a5c; }
+
+  .heat-1 { background: #1c1433; border: 1px solid #3b2d6e; }
+  .heat-1 .date-num { color: #a78bfa; }
+
+  .heat-2 { background: #1a2040; border: 1px solid #2d4580; }
+  .heat-2 .date-num { color: #60a5fa; }
+
+  .heat-3 { background: #0f2a28; border: 1px solid #1a5048; }
+  .heat-3 .date-num { color: #34d399; }
+
+  .heat-4 { background: #1f1a0a; border: 1px solid #705a10; }
+  .heat-4 .date-num { color: #fbbf24; }
+
+  .heat-5plus { background: #2a0f0f; border: 1px solid #8b2020; }
+  .heat-5plus .date-num { color: #f87171; }
+
+  /* ── People table ── */
+  .table-wrap {
+    max-width: 680px;
+    margin: 0 auto 36px;
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid #1f1f35;
+    background: #0e0e1a;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+  }
+
+  thead th {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    padding: 10px 8px;
+    text-align: left;
+    border-bottom: 1px solid #1f1f35;
+  }
+
+  thead th:first-child { padding-left: 16px; }
+
+  tbody tr { border-bottom: 1px solid #14142a; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #12122a; }
+
+  td {
+    padding: 10px 8px;
+    vertical-align: middle;
+  }
+  td:first-child { padding-left: 16px; }
+
+  .person-name {
+    font-weight: 600;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .badge-row { display: flex; flex-wrap: wrap; gap: 4px; }
+
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-weight: 700;
+    border: 1px solid;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    max-width: 680px;
+    margin: 0 auto 28px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .legend-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: #6b7280;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.65rem;
+    color: #9ca3af;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .legend-swatch {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* ── Conflict callout ── */
+  .callout {
+    max-width: 680px;
+    margin: 0 auto 28px;
+    border-radius: 12px;
+    padding: 16px 20px;
+    background: #0e1a15;
+    border: 1px solid #1a4030;
+  }
+
+  .callout-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #34d399;
+    margin-bottom: 10px;
+  }
+
+  .conflict-item {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 6px;
+    font-size: 0.78rem;
+  }
+
+  .conflict-date {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 0.9rem;
+    min-width: 28px;
+    color: #fbbf24;
+  }
+
+  .conflict-people { color: #9ca3af; }
+
+  .free-dates {
+    max-width: 680px;
+    margin: 0 auto;
+    border-radius: 12px;
+    padding: 16px 20px;
+    background: #0d1a2a;
+    border: 1px solid #1a3050;
+  }
+
+  .free-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #60a5fa;
+    margin-bottom: 10px;
+  }
+
+  .free-badge-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .free-badge {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 4px 12px;
+    border-radius: 8px;
+    background: #162a40;
+    border: 1px solid #2d5080;
+    color: #60a5fa;
+  }
+</style>
+</head>
+<body>
+
+<h1>Group Availability – Next 2 Weeks</h1>
+<p class="subtitle">DATES MARKED UNAVAILABLE · APRIL 2025</p>
+
+<!-- LEGEND -->
+<div class="legend">
+  <span class="legend-label">Conflicts →</span>
+  <div class="legend-item"><div class="legend-swatch" style="background:#1c1433;border-color:#3b2d6e;"></div>1 person</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#1a2040;border-color:#2d4580;"></div>2 people</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#0f2a28;border-color:#1a5048;"></div>3 people</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#1f1a0a;border-color:#705a10;"></div>4 people</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#2a0f0f;border-color:#8b2020;"></div>5+ people</div>
+</div>
+
+<!-- HEAT MAP GRID -->
+<div class="grid-section">
+  <div class="section-label">Date heatmap — how many people are unavailable</div>
+  <div class="date-grid" id="heatGrid"></div>
+</div>
+
+<!-- WHO IS UNAVAILABLE WHEN -->
+<div class="grid-section">
+  <div class="section-label">Per-person unavailable dates</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Person</th>
+          <th>Unavailable Dates</th>
+        </tr>
+      </thead>
+      <tbody id="personTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CONFLICTS -->
+<div class="callout">
+  <div class="callout-title">⚡ High-conflict dates (2+ people unavailable)</div>
+  <div id="conflictList"></div>
+</div>
+
+<!-- FREE DATES -->
+<div class="free-dates">
+  <div class="free-title">✅ Everyone available (no conflicts at all)</div>
+  <div class="free-badge-row" id="freeDates"></div>
+</div>
+
+<script>
+  const people = [
+    { name: "You (Vedang)", dates: [15], color: "#a78bfa", bg: "#2a1a4a" },
+    { name: "Advika", dates: [16, 21, 22], color: "#f472b6", bg: "#3a1030" },
+    { name: "Ananya Sriram", dates: [21, 22], color: "#fb923c", bg: "#3a1a0a" },
+    { name: "Prisha", dates: [16, 19, 22], color: "#38bdf8", bg: "#0a2030" },
+    { name: "Sarvesh", dates: [23, 24, 25, 26], color: "#f87171", bg: "#3a0a0a" },
+    { name: "Laalenthika", dates: [15, 24], color: "#4ade80", bg: "#0a2a15" },
+    { name: "Ishita", dates: [16, 19, 20], color: "#facc15", bg: "#2a1a00" },
+    { name: "Ananya Rugved", dates: [15, 20, 21], color: "#c084fc", bg: "#1a0a2a" },
+  ];
+
+  // Build conflict map
+  const dateMap = {}; // date -> [names]
+  people.forEach(p => {
+    p.dates.forEach(d => {
+      if (!dateMap[d]) dateMap[d] = [];
+      dateMap[d].push({ name: p.name, color: p.color, bg: p.bg });
+    });
+  });
+
+  const allDates = Array.from({length: 14}, (_, i) => i + 13); // 13..26
+  
+  // Heat grid
+  const grid = document.getElementById('heatGrid');
+  allDates.forEach(d => {
+    const count = dateMap[d] ? dateMap[d].length : 0;
+    let heatClass = 'heat-0';
+    if (count === 1) heatClass = 'heat-1';
+    else if (count === 2) heatClass = 'heat-2';
+    else if (count === 3) heatClass = 'heat-3';
+    else if (count === 4) heatClass = 'heat-4';
+    else if (count >= 5) heatClass = 'heat-5plus';
+
+    const cell = document.createElement('div');
+    cell.className = `date-cell ${heatClass}`;
+    
+    const num = document.createElement('div');
+    num.className = 'date-num';
+    num.textContent = d;
+    cell.appendChild(num);
+
+    const dotRow = document.createElement('div');
+    dotRow.className = 'dot-row';
+    if (dateMap[d]) {
+      dateMap[d].forEach(p => {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        dot.style.background = p.color;
+        dot.title = p.name;
+        dotRow.appendChild(dot);
+      });
+    }
+    cell.appendChild(dotRow);
+    grid.appendChild(cell);
+  });
+
+  // Person table
+  const tbody = document.getElementById('personTable');
+  people.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="person-name" style="color:${p.color}">${p.name}</span></td>
+      <td><div class="badge-row">${
+        p.dates.sort((a,b)=>a-b).map(d =>
+          `<span class="badge" style="color:${p.color};background:${p.bg};border-color:${p.color}40">${d}</span>`
+        ).join('')
+      }</div></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Conflicts
+  const conflictList = document.getElementById('conflictList');
+  const conflictDates = Object.entries(dateMap)
+    .filter(([d, names]) => names.length >= 2)
+    .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+
+  if (conflictDates.length === 0) {
+    conflictList.innerHTML = '<div style="color:#6b7280;font-size:0.78rem;">No conflicts found.</div>';
+  } else {
+    conflictDates.forEach(([d, names]) => {
+      const item = document.createElement('div');
+      item.className = 'conflict-item';
+      item.innerHTML = `
+        <span class="conflict-date">${d}</span>
+        <span class="conflict-people">${names.map(n => `<span style="color:${n.color}">${n.name}</span>`).join(', ')}</span>
+      `;
+      conflictList.appendChild(item);
+    });
+  }
+
+  // Free dates (no one unavailable)
+  const freeRow = document.getElementById('freeDates');
+  const freeDatesArr = allDates.filter(d => !dateMap[d]);
+  if (freeDatesArr.length === 0) {
+    freeRow.innerHTML = '<span style="color:#6b7280;font-size:0.78rem;">No completely free dates in this window.</span>';
+  } else {
+    freeDatesArr.forEach(d => {
+      const b = document.createElement('div');
+      b.className = 'free-badge';
+      b.textContent = d;
+      freeRow.appendChild(b);
+    });
+  }
+</script>
+</body>
+</html>
